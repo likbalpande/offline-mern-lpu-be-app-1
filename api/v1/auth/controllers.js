@@ -1,4 +1,6 @@
 const { UserModel } = require("../../../models/user_schema");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const userRegistrationController = async (req, res) => {
     try {
@@ -37,7 +39,51 @@ const userRegistrationController = async (req, res) => {
 };
 
 const userLoginController = async (req, res) => {
-    // to be continued...
+    const data = req.body;
+    if (!data.email || !data.password) {
+        // some more validation
+        res.status(400).json({ isSuccess: false, message: "Email and password is required", data: {} });
+        return;
+    }
+
+    const user = await UserModel.findOne({
+        // find --> querySelectorAll , findOne --> querySelector
+        email: data.email,
+    });
+
+    if (user === null) {
+        res.status(400).json({ isSuccess: false, message: "User doesn't exists! Please register!", data: {} });
+        return;
+    }
+
+    const hashedPassword = user.password;
+    const isCorrect = await bcrypt.compare(data.password, hashedPassword);
+    if (!isCorrect) {
+        res.status(400).json({ isSuccess: false, message: "Incorrect password!", data: {} });
+        return;
+    }
+
+    const token = jwt.sign({ _id: user._id, email: user.email }, "my_secretnsgrsvfb#@%$kf");
+
+    res.cookie("authorization", token, {
+        maxAge: 1 * 24 * 60 * 60 * 1000,
+        secure: true,
+        sameSite: "Strict",
+    });
+
+    res.status(200);
+    res.json({
+        isSuccess: true,
+        message: "Login successful!",
+        data: {
+            user: {
+                email: user.email,
+            },
+        },
+    });
 };
 
-module.exports = { userRegistrationController, userLoginController };
+module.exports = {
+    userRegistrationController,
+    userLoginController,
+};
