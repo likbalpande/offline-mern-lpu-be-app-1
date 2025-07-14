@@ -63,7 +63,13 @@ const userLoginController = async (req, res) => {
         return;
     }
 
-    const token = jwt.sign({ _id: user._id, email: user.email }, "my_secretnsgrsvfb#@%$kf");
+    const token = jwt.sign(
+        {
+            _id: user._id,
+            email: user.email,
+        },
+        process.env.JWT_SECRET
+    );
 
     res.cookie("authorization", token, {
         maxAge: 1 * 24 * 60 * 60 * 1000,
